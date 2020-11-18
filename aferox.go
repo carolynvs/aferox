@@ -3,6 +3,7 @@ package aferox
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/afero"
@@ -33,6 +34,33 @@ func (a Aferox) Abs(path string) string {
 	return a.wrapper.Abs(path)
 }
 
+// This is a simplified exec.LookPath that checks if command is accessible given
+// a PATH environment variable.
+func (a Aferox) LookPath(cmd string, path string) (string, bool) {
+	paths := strings.Split(path, string(os.PathListSeparator))
+	for _, p := range paths {
+		files, err := a.ReadDir(p)
+		if err != nil {
+			continue
+		}
+
+		for _, f := range files {
+			if f.Name() != cmd {
+				continue
+			}
+
+			// Return if the file is executable MAYBE
+			// Simplified check, we aren't checking if it's executable by the current user
+			executable := f.Mode()&0111 != 0
+			if executable {
+				return filepath.Join(p, f.Name()), true
+			}
+		}
+	}
+
+	return "", false
+}
+
 var _ afero.Fs = &FsWd{}
 
 // FsWd adjusts all relative paths based on the stored
@@ -51,86 +79,86 @@ func NewFsWd(dir string, fs afero.Fs) *FsWd {
 	}
 }
 
-func (o *FsWd) Getwd() string {
-	return o.dir
+func (f *FsWd) Getwd() string {
+	return f.dir
 }
 
-func (o *FsWd) Setwd(dir string) {
-	o.dir = dir
+func (f *FsWd) Setwd(dir string) {
+	f.dir = dir
 }
 
-func (o *FsWd) Abs(path string) string {
+func (f *FsWd) Abs(path string) string {
 	if filepath.IsAbs(path) {
 		return path
 	}
 
 	path = filepath.Clean(path)
-	return filepath.Join(o.dir, path)
+	return filepath.Join(f.dir, path)
 }
 
-func (o *FsWd) Create(name string) (afero.File, error) {
-	name = o.absolute(name)
-	return o.fs.Create(name)
+func (f *FsWd) Create(name string) (afero.File, error) {
+	name = f.absolute(name)
+	return f.fs.Create(name)
 }
 
-func (o *FsWd) Mkdir(name string, perm os.FileMode) error {
-	name = o.absolute(name)
-	return o.fs.Mkdir(name, perm)
+func (f *FsWd) Mkdir(name string, perm os.FileMode) error {
+	name = f.absolute(name)
+	return f.fs.Mkdir(name, perm)
 }
 
-func (o *FsWd) MkdirAll(path string, perm os.FileMode) error {
-	path = o.absolute(path)
-	return o.fs.MkdirAll(path, perm)
+func (f *FsWd) MkdirAll(path string, perm os.FileMode) error {
+	path = f.absolute(path)
+	return f.fs.MkdirAll(path, perm)
 }
 
-func (o *FsWd) Open(name string) (afero.File, error) {
-	name = o.absolute(name)
-	return o.fs.Open(name)
+func (f *FsWd) Open(name string) (afero.File, error) {
+	name = f.absolute(name)
+	return f.fs.Open(name)
 }
 
-func (o *FsWd) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
-	name = o.absolute(name)
-	return o.fs.OpenFile(name, flag, perm)
+func (f *FsWd) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
+	name = f.absolute(name)
+	return f.fs.OpenFile(name, flag, perm)
 }
 
-func (o *FsWd) Remove(name string) error {
-	name = o.absolute(name)
-	return o.fs.Remove(name)
+func (f *FsWd) Remove(name string) error {
+	name = f.absolute(name)
+	return f.fs.Remove(name)
 }
 
-func (o *FsWd) RemoveAll(path string) error {
-	path = o.absolute(path)
-	return o.fs.RemoveAll(path)
+func (f *FsWd) RemoveAll(path string) error {
+	path = f.absolute(path)
+	return f.fs.RemoveAll(path)
 }
 
-func (o *FsWd) Rename(oldname, newname string) error {
-	oldname = o.absolute(oldname)
-	newname = o.absolute(newname)
-	return o.fs.Rename(oldname, newname)
+func (f *FsWd) Rename(oldname, newname string) error {
+	oldname = f.absolute(oldname)
+	newname = f.absolute(newname)
+	return f.fs.Rename(oldname, newname)
 }
 
-func (o *FsWd) Stat(name string) (os.FileInfo, error) {
-	name = o.absolute(name)
-	return o.fs.Stat(name)
+func (f *FsWd) Stat(name string) (os.FileInfo, error) {
+	name = f.absolute(name)
+	return f.fs.Stat(name)
 }
 
-func (o *FsWd) Name() string {
+func (f *FsWd) Name() string {
 	return "FsWd"
 }
 
-func (o *FsWd) Chmod(name string, mode os.FileMode) error {
-	name = o.absolute(name)
-	return o.fs.Chmod(name, mode)
+func (f *FsWd) Chmod(name string, mode os.FileMode) error {
+	name = f.absolute(name)
+	return f.fs.Chmod(name, mode)
 }
 
-func (o *FsWd) Chtimes(name string, atime time.Time, mtime time.Time) error {
-	name = o.absolute(name)
-	return o.fs.Chtimes(name, atime, mtime)
+func (f *FsWd) Chtimes(name string, atime time.Time, mtime time.Time) error {
+	name = f.absolute(name)
+	return f.fs.Chtimes(name, atime, mtime)
 }
 
-func (o *FsWd) absolute(path string) string {
+func (f *FsWd) absolute(path string) string {
 	if !filepath.IsAbs(path) {
-		path = filepath.Join(o.dir, path)
+		path = filepath.Join(f.dir, path)
 	}
 
 	return path

@@ -1,6 +1,8 @@
 package aferox
 
 import (
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -49,4 +51,35 @@ func TestFsWd_Create(t *testing.T) {
 	require.NoError(t, err)
 	exists, _ := f.Exists("/home/user.txt")
 	assert.True(t, exists)
+}
+
+func TestFsWd_LookPath(t *testing.T) {
+	t.Run("osfs", func(t *testing.T) {
+		pwd, err := os.Getwd()
+		require.NoError(t, err, "Getwd failed")
+
+		f := NewAferox(pwd, afero.NewOsFs())
+		goPath, hasGo := f.LookPath("go", os.Getenv("PATH"))
+		require.True(t, hasGo)
+		assert.NotEmpty(t, goPath)
+	})
+
+	t.Run("memfs", func(t *testing.T) {
+		f := NewAferox("/home", afero.NewMemMapFs())
+
+		// /usr/local/bin not executable
+		_, err := f.Create("/usr/local/bin/go")
+		require.NoError(t, err, "Create failed")
+
+		// /bin/go executable
+		_, err = f.Create("/bin/go")
+		require.NoError(t, err, "Create failed")
+		err = f.Chmod("/bin/go", 0744)
+		require.NoError(t, err, "Chmod faild")
+
+		path := strings.Join([]string{"/home/bin", "/usr/local/bin", "/bin", "/home/go/bin"}, string(os.PathListSeparator))
+		goPath, hasGo := f.LookPath("go", path)
+		require.True(t, hasGo)
+		assert.Equal(t, "/bin/go", goPath)
+	})
 }
