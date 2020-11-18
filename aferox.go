@@ -19,7 +19,7 @@ type FsWd struct {
 	dir string
 }
 
-func NewFsFd(dir string, fs afero.Fs) *FsWd {
+func NewFsWd(dir string, fs afero.Fs) *FsWd {
 	return &FsWd{
 		dir: dir,
 		Afero: &afero.Afero{Fs: fs},
