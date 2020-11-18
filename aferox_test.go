@@ -26,9 +26,13 @@ func TestFsWd_ReadFile(t *testing.T) {
 	backend.Mkdir("/home", 0755)
 	backend.WriteFile("/home/user.txt", []byte("sally"), 0644)
 
-	f := NewFsWd("/home", backend)
+	f := &afero.Afero{Fs: NewFsWd("/home", backend)}
 
 	contents, err := f.ReadFile("/home/user.txt")
+	require.NoError(t, err)
+	assert.Equal(t, "sally", string(contents))
+
+	contents, err = f.ReadFile("user.txt")
 	require.NoError(t, err)
 	assert.Equal(t, "sally", string(contents))
 }

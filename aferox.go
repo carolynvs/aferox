@@ -14,15 +14,15 @@ var _ afero.Fs = &FsWd{}
 // working directory, instead of relying on the default behavior for relative
 // paths defined by the implementing Fs.
 type FsWd struct {
-	*afero.Afero
+	fs afero.Fs
 
 	dir string
 }
 
 func NewFsWd(dir string, fs afero.Fs) *FsWd {
 	return &FsWd{
-		dir:   dir,
-		Afero: &afero.Afero{Fs: fs},
+		dir: dir,
+		fs:  fs,
 	}
 }
 
@@ -36,48 +36,48 @@ func (o *FsWd) Setwd(dir string) {
 
 func (o *FsWd) Create(name string) (afero.File, error) {
 	name = o.absolute(name)
-	return o.Afero.Create(name)
+	return o.fs.Create(name)
 }
 
 func (o *FsWd) Mkdir(name string, perm os.FileMode) error {
 	name = o.absolute(name)
-	return o.Afero.Mkdir(name, perm)
+	return o.fs.Mkdir(name, perm)
 }
 
 func (o *FsWd) MkdirAll(path string, perm os.FileMode) error {
 	path = o.absolute(path)
-	return o.Afero.MkdirAll(path, perm)
+	return o.fs.MkdirAll(path, perm)
 }
 
 func (o *FsWd) Open(name string) (afero.File, error) {
 	name = o.absolute(name)
-	return o.Afero.Open(name)
+	return o.fs.Open(name)
 }
 
 func (o *FsWd) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
 	name = o.absolute(name)
-	return o.Afero.OpenFile(name, flag, perm)
+	return o.fs.OpenFile(name, flag, perm)
 }
 
 func (o *FsWd) Remove(name string) error {
 	name = o.absolute(name)
-	return o.Afero.Remove(name)
+	return o.fs.Remove(name)
 }
 
 func (o *FsWd) RemoveAll(path string) error {
 	path = o.absolute(path)
-	return o.Afero.RemoveAll(path)
+	return o.fs.RemoveAll(path)
 }
 
 func (o *FsWd) Rename(oldname, newname string) error {
 	oldname = o.absolute(oldname)
 	newname = o.absolute(newname)
-	return o.Afero.Rename(oldname, newname)
+	return o.fs.Rename(oldname, newname)
 }
 
 func (o *FsWd) Stat(name string) (os.FileInfo, error) {
 	name = o.absolute(name)
-	return o.Afero.Stat(name)
+	return o.fs.Stat(name)
 }
 
 func (o *FsWd) Name() string {
@@ -86,12 +86,12 @@ func (o *FsWd) Name() string {
 
 func (o *FsWd) Chmod(name string, mode os.FileMode) error {
 	name = o.absolute(name)
-	return o.Afero.Chmod(name, mode)
+	return o.fs.Chmod(name, mode)
 }
 
 func (o *FsWd) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	name = o.absolute(name)
-	return o.Afero.Chtimes(name, atime, mtime)
+	return o.fs.Chtimes(name, atime, mtime)
 }
 
 func (o *FsWd) absolute(path string) string {
