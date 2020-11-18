@@ -21,7 +21,7 @@ type FsWd struct {
 
 func NewFsWd(dir string, fs afero.Fs) *FsWd {
 	return &FsWd{
-		dir: dir,
+		dir:   dir,
 		Afero: &afero.Afero{Fs: fs},
 	}
 }
@@ -36,48 +36,48 @@ func (o *FsWd) Setwd(dir string) {
 
 func (o *FsWd) Create(name string) (afero.File, error) {
 	name = o.absolute(name)
-	return o.Create(name)
+	return o.Afero.Create(name)
 }
 
 func (o *FsWd) Mkdir(name string, perm os.FileMode) error {
 	name = o.absolute(name)
-	return o.Mkdir(name, perm)
+	return o.Afero.Mkdir(name, perm)
 }
 
 func (o *FsWd) MkdirAll(path string, perm os.FileMode) error {
 	path = o.absolute(path)
-	return o.MkdirAll(path, perm)
+	return o.Afero.MkdirAll(path, perm)
 }
 
 func (o *FsWd) Open(name string) (afero.File, error) {
 	name = o.absolute(name)
-	return o.Open(name)
+	return o.Afero.Open(name)
 }
 
 func (o *FsWd) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
 	name = o.absolute(name)
-	return o.OpenFile(name, flag, perm)
+	return o.Afero.OpenFile(name, flag, perm)
 }
 
 func (o *FsWd) Remove(name string) error {
 	name = o.absolute(name)
-	return o.Remove(name)
+	return o.Afero.Remove(name)
 }
 
 func (o *FsWd) RemoveAll(path string) error {
 	path = o.absolute(path)
-	return o.RemoveAll(path)
+	return o.Afero.RemoveAll(path)
 }
 
 func (o *FsWd) Rename(oldname, newname string) error {
 	oldname = o.absolute(oldname)
 	newname = o.absolute(newname)
-	return o.Rename(oldname, newname)
+	return o.Afero.Rename(oldname, newname)
 }
 
 func (o *FsWd) Stat(name string) (os.FileInfo, error) {
 	name = o.absolute(name)
-	return o.Stat(name)
+	return o.Afero.Stat(name)
 }
 
 func (o *FsWd) Name() string {
@@ -86,16 +86,16 @@ func (o *FsWd) Name() string {
 
 func (o *FsWd) Chmod(name string, mode os.FileMode) error {
 	name = o.absolute(name)
-	return o.Chmod(name, mode)
+	return o.Afero.Chmod(name, mode)
 }
 
 func (o *FsWd) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	name = o.absolute(name)
-	return o.Chtimes(name, atime, mtime)
+	return o.Afero.Chtimes(name, atime, mtime)
 }
 
 func (o *FsWd) absolute(path string) string {
-	if !filepath.IsAbs(path){
+	if !filepath.IsAbs(path) {
 		path = filepath.Join(o.dir, path)
 	}
 

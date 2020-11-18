@@ -21,8 +21,8 @@ func TestFsWd_Setwd(t *testing.T) {
 	assert.Equal(t, "/bin", pwd)
 }
 
-func TestFsWd_ioutil(t *testing.T) {
-	backend := &afero.Afero{Fs:afero.NewMemMapFs()}
+func TestFsWd_ReadFile(t *testing.T) {
+	backend := &afero.Afero{Fs: afero.NewMemMapFs()}
 	backend.Mkdir("/home", 0755)
 	backend.WriteFile("/home/user.txt", []byte("sally"), 0644)
 
@@ -31,4 +31,15 @@ func TestFsWd_ioutil(t *testing.T) {
 	contents, err := f.ReadFile("/home/user.txt")
 	require.NoError(t, err)
 	assert.Equal(t, "sally", string(contents))
+}
+
+func TestFsWd_Create(t *testing.T) {
+	backend := &afero.Afero{Fs: afero.NewMemMapFs()}
+	backend.Mkdir("/home", 0755)
+
+	f := NewFsWd("/home", backend)
+	_, err := f.Create("user.txt")
+	require.NoError(t, err)
+	exists, _ := backend.Exists("/home/user.txt")
+	assert.True(t, exists)
 }
