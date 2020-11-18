@@ -21,6 +21,12 @@ func TestFsWd_Setwd(t *testing.T) {
 	assert.Equal(t, "/bin", pwd)
 }
 
+func TestFsWd_Abs(t *testing.T) {
+	f := NewAferox("/home/me", afero.NewMemMapFs())
+	path := f.Abs("../you")
+	assert.Equal(t, "/home/you", path)
+}
+
 func TestFsWd_ReadFile(t *testing.T) {
 	f := NewAferox("/home", afero.NewMemMapFs())
 	f.Mkdir("/home", 0755)

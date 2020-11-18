@@ -29,6 +29,10 @@ func (a Aferox) Setwd(dir string) {
 	a.wrapper.Setwd(dir)
 }
 
+func (a Aferox) Abs(path string) string {
+	return a.wrapper.Abs(path)
+}
+
 var _ afero.Fs = &FsWd{}
 
 // FsWd adjusts all relative paths based on the stored
@@ -53,6 +57,15 @@ func (o *FsWd) Getwd() string {
 
 func (o *FsWd) Setwd(dir string) {
 	o.dir = dir
+}
+
+func (o *FsWd) Abs(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+
+	path = filepath.Clean(path)
+	return filepath.Join(o.dir, path)
 }
 
 func (o *FsWd) Create(name string) (afero.File, error) {
