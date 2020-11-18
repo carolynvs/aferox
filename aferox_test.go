@@ -9,24 +9,22 @@ import (
 )
 
 func TestFsWd_Getwd(t *testing.T) {
-	f := NewFsWd("/home", afero.NewMemMapFs())
+	f := NewAferox("/home", afero.NewMemMapFs())
 	pwd := f.Getwd()
 	assert.Equal(t, "/home", pwd)
 }
 
 func TestFsWd_Setwd(t *testing.T) {
-	f := NewFsWd("/home", afero.NewMemMapFs())
+	f := NewAferox("/home", afero.NewMemMapFs())
 	f.Setwd("/bin")
 	pwd := f.Getwd()
 	assert.Equal(t, "/bin", pwd)
 }
 
 func TestFsWd_ReadFile(t *testing.T) {
-	backend := &afero.Afero{Fs: afero.NewMemMapFs()}
-	backend.Mkdir("/home", 0755)
-	backend.WriteFile("/home/user.txt", []byte("sally"), 0644)
-
-	f := &afero.Afero{Fs: NewFsWd("/home", backend)}
+	f := NewAferox("/home", afero.NewMemMapFs())
+	f.Mkdir("/home", 0755)
+	f.WriteFile("/home/user.txt", []byte("sally"), 0644)
 
 	contents, err := f.ReadFile("/home/user.txt")
 	require.NoError(t, err)
@@ -38,12 +36,11 @@ func TestFsWd_ReadFile(t *testing.T) {
 }
 
 func TestFsWd_Create(t *testing.T) {
-	backend := &afero.Afero{Fs: afero.NewMemMapFs()}
-	backend.Mkdir("/home", 0755)
+	f := NewAferox("/home", afero.NewMemMapFs())
+	f.Mkdir("/home", 0755)
 
-	f := NewFsWd("/home", backend)
 	_, err := f.Create("user.txt")
 	require.NoError(t, err)
-	exists, _ := backend.Exists("/home/user.txt")
+	exists, _ := f.Exists("/home/user.txt")
 	assert.True(t, exists)
 }

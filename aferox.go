@@ -8,6 +8,27 @@ import (
 	"github.com/spf13/afero"
 )
 
+type Aferox struct {
+	*afero.Afero
+	wrapper *FsWd
+}
+
+func NewAferox(dir string, fs afero.Fs) Aferox {
+	wrapper := NewFsWd(dir, fs)
+	return Aferox{
+		Afero:   &afero.Afero{Fs: wrapper},
+		wrapper: wrapper,
+	}
+}
+
+func (a Aferox) Getwd() string {
+	return a.wrapper.Getwd()
+}
+
+func (a Aferox) Setwd(dir string) {
+	a.wrapper.Setwd(dir)
+}
+
 var _ afero.Fs = &FsWd{}
 
 // FsWd adjusts all relative paths based on the stored
