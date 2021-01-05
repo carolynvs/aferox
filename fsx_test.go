@@ -2,6 +2,7 @@ package aferox
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 
 func TestFsx_Create(t *testing.T) {
 	f := NewAferox("/home", afero.NewMemMapFs())
-	err :=f.Mkdir("/home", 0755)
+	err := f.Mkdir("/home", 0755)
 	require.NoError(t, err, "Mkdir failed")
 
 	_, err = f.Create("user.txt")
@@ -32,7 +33,7 @@ func TestFsx_Chmod(t *testing.T) {
 	err = f.Chmod(filename, wantMode)
 	require.NoError(t, err, "Chmod failed")
 
-	fi,err:= f.Stat(filename)
+	fi, err := f.Stat(filename)
 	require.NoError(t, err, "Stat failed")
 	assert.Equal(t, fi.Mode()&wantMode, wantMode)
 }
@@ -48,7 +49,7 @@ func TestFsx_Chtimes(t *testing.T) {
 	err = f.Chtimes(filename, sometime, sometime)
 	require.NoError(t, err, "Chtimes failed")
 
-	fi,err:= f.Stat(filename)
+	fi, err := f.Stat(filename)
 	require.NoError(t, err, "Stat failed")
 	assert.Equal(t, sometime, fi.ModTime())
 }
@@ -93,7 +94,7 @@ func TestFsx_Open(t *testing.T) {
 
 	fi, err := f.Open(filename)
 	require.NoError(t, err, "Open failed")
-	assert.Equal(t, "/home/test.txt", fi.Name())
+	assert.Equal(t, xplat("/home/test.txt"), fi.Name())
 }
 
 func TestFsx_OpenFile(t *testing.T) {
@@ -106,7 +107,7 @@ func TestFsx_OpenFile(t *testing.T) {
 	fi, err := file.Stat()
 	require.NoError(t, err, "Stat failed")
 	assert.Equal(t, "test.txt", fi.Name())
-	assert.Equal(t, wantMode,  fi.Mode()&wantMode)
+	assert.Equal(t, wantMode, fi.Mode()&wantMode)
 }
 
 func TestFsx_Remove(t *testing.T) {
@@ -151,4 +152,12 @@ func TestFsx_Rename(t *testing.T) {
 	fi, err := f.Stat("test2.txt")
 	require.NoError(t, err, "Stat failed")
 	assert.Equal(t, "test2.txt", fi.Name())
+}
+
+func TestFsx_Abs(t *testing.T) {
+	f := NewFsx("/", afero.NewMemMapFs())
+
+	path := f.Abs("test")
+	wantPath, _ := filepath.Abs("/test")
+	assert.Equal(t, wantPath, path)
 }

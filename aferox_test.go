@@ -11,15 +11,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// xplat rewrites a filepath as appropriate based on GOOS
+func xplat(value string) string {
+	value, _ = filepath.Abs(value)
+	return value
+}
+
 func Test_Getwd(t *testing.T) {
 	a := NewAferox("/home", afero.NewMemMapFs())
 	f := NewFsx("/home", afero.NewMemMapFs())
 
 	pwd := a.Getwd()
-	assert.Equal(t, "/home", pwd)
+	assert.Equal(t, xplat("/home"), pwd)
 
 	pwd = f.Getwd()
-	assert.Equal(t, "/home", pwd)
+	assert.Equal(t, xplat("/home"), pwd)
 }
 
 func Test_Chdir(t *testing.T) {
@@ -28,11 +34,11 @@ func Test_Chdir(t *testing.T) {
 
 	a.Chdir("/bin")
 	pwd := a.Getwd()
-	assert.Equal(t, "/bin", pwd)
+	assert.Equal(t, xplat("/bin"), pwd)
 
 	f.Chdir("/bin")
 	pwd = f.Getwd()
-	assert.Equal(t, "/bin", pwd)
+	assert.Equal(t, xplat("/bin"), pwd)
 }
 
 func Test_Abs(t *testing.T) {
@@ -70,28 +76,33 @@ func TestAferox_LookPath(t *testing.T) {
 		require.NoError(t, err, "Getwd failed")
 
 		f := NewAferox(pwd, afero.NewOsFs())
-		goPath, hasGo := f.LookPath("go", os.Getenv("PATH"))
-		require.True(t, hasGo)
-		assert.NotEmpty(t, goPath)
+		cmdPath, hasCmd := f.LookPath("go", os.Getenv("PATH"), os.Getenv("PATHEXT"))
+		require.True(t, hasCmd)
+		assert.NotEmpty(t, cmdPath)
 	})
 
 	t.Run("memfs", func(t *testing.T) {
 		f := NewAferox("/home", afero.NewMemMapFs())
 
-		// /usr/local/bin not executable
-		_, err := f.Create("/usr/local/bin/go")
+		_, err := f.Create("/bin/go")
 		require.NoError(t, err, "Create failed")
-
-		// /bin/go executable
-		_, err = f.Create("/bin/go")
-		require.NoError(t, err, "Create failed")
-		err = f.Chmod("/bin/go", 0744)
-		require.NoError(t, err, "Chmod faild")
 
 		path := strings.Join([]string{"/home/bin", "/usr/local/bin", "/bin", "/home/go/bin"}, string(os.PathListSeparator))
-		goPath, hasGo := f.LookPath("go", path)
-		require.True(t, hasGo)
-		assert.Equal(t, "/bin/go", goPath)
+		cmdPath, hasCmd := f.LookPath("go", path, "")
+		require.True(t, hasCmd)
+		assert.Equal(t, "/bin/go", cmdPath)
+	})
+
+	t.Run("match with pathext", func(t *testing.T) {
+		f := NewAferox("/home", afero.NewMemMapFs())
+
+		_, err := f.Create("/bin/powershell.exe")
+		require.NoError(t, err, "Create failed")
+
+		path := strings.Join([]string{"/home/bin", "/usr/local/bin", "/bin", "/home/go/bin"}, string(os.PathListSeparator))
+		cmdPath, hasCmd := f.LookPath("POWERSHELL", path, ".COM;.BAT;.EXE")
+		require.True(t, hasCmd)
+		assert.Equal(t, "/bin/powershell.exe", cmdPath)
 	})
 }
 
@@ -165,15 +176,15 @@ func TestAferox_TempDir(t *testing.T) {
 		require.NoError(t, err)
 
 		wantTmp := filepath.Join(os.TempDir(), "aferox")
-		assert.Contains(t, gotTmp, wantTmp)
+		assert.Contains(t, gotTmp, xplat(wantTmp))
 	})
 
 	t.Run("relative", func(t *testing.T) {
 		gotTmp, err := a.TempDir("me", "aferox")
 		require.NoError(t, err)
 
-		wantTmp := "me/aferox"
-		assert.Contains(t, gotTmp, wantTmp)
+		wantTmp := "/me/aferox"
+		assert.Contains(t, gotTmp, xplat(wantTmp))
 	})
 
 	t.Run("absolute", func(t *testing.T) {
@@ -181,7 +192,7 @@ func TestAferox_TempDir(t *testing.T) {
 		require.NoError(t, err)
 
 		wantTmp := "/etc/aferox"
-		assert.Contains(t, gotTmp, wantTmp)
+		assert.Contains(t, gotTmp, xplat(wantTmp))
 	})
 }
 
@@ -193,7 +204,7 @@ func TestAferox_TempFile(t *testing.T) {
 		require.NoError(t, err)
 
 		wantTmp := filepath.Join(os.TempDir(), "aferox")
-		assert.Contains(t, gotTmp.Name(), wantTmp)
+		assert.Contains(t, gotTmp.Name(), xplat(wantTmp))
 	})
 
 	t.Run("relative", func(t *testing.T) {
@@ -201,7 +212,7 @@ func TestAferox_TempFile(t *testing.T) {
 		require.NoError(t, err)
 
 		wantTmp := "/home/me/aferox"
-		assert.Contains(t, gotTmp.Name(), wantTmp)
+		assert.Contains(t, gotTmp.Name(), xplat(wantTmp))
 	})
 
 	t.Run("absolute", func(t *testing.T) {
@@ -209,7 +220,7 @@ func TestAferox_TempFile(t *testing.T) {
 		require.NoError(t, err)
 
 		wantTmp := "/etc/aferox"
-		assert.Contains(t, gotTmp.Name(), wantTmp)
+		assert.Contains(t, gotTmp.Name(), xplat(wantTmp))
 	})
 }
 

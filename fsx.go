@@ -3,6 +3,7 @@ package aferox
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/afero"
@@ -20,8 +21,9 @@ type Fsx struct {
 }
 
 func NewFsx(dir string, fs afero.Fs) *Fsx {
+	pwd, _ := filepath.Abs(dir)
 	return &Fsx{
-		dir: dir,
+		dir: pwd,
 		fs:  fs,
 	}
 }
@@ -45,7 +47,12 @@ func (f *Fsx) Abs(path string) string {
 	if filepath.IsAbs(path) {
 		fullPath = path
 	} else {
-		fullPath = filepath.Join(f.dir, path)
+		prefix := f.dir
+		// On Windows /foo resolves to DRIVEPATH:\foo, so treat anything that starts with a slash as absolute that just needs cleaning up
+		if strings.HasPrefix(path, `/`) || strings.HasPrefix(path, `\`) {
+			prefix, _ = filepath.Abs("/")
+		}
+		fullPath = filepath.Join(prefix, path)
 	}
 	return filepath.Clean(fullPath)
 }
@@ -55,14 +62,14 @@ func (f *Fsx) Abs(path string) string {
 // (before umask). If successful, methods on the returned File can
 // be used for I/O; the associated file descriptor has mode O_RDWR.
 func (f *Fsx) Create(name string) (afero.File, error) {
-	name = f.absolute(name)
+	name = f.Abs(name)
 	return f.fs.Create(name)
 }
 
 // Mkdir creates a new directory with the specified name and permission
 // bits (before umask).
 func (f *Fsx) Mkdir(name string, perm os.FileMode) error {
-	name = f.absolute(name)
+	name = f.Abs(name)
 	return f.fs.Mkdir(name, perm)
 }
 
@@ -74,7 +81,7 @@ func (f *Fsx) Mkdir(name string, perm os.FileMode) error {
 // If path is already a directory, MkdirAll does nothing
 // and returns nil.
 func (f *Fsx) MkdirAll(path string, perm os.FileMode) error {
-	path = f.absolute(path)
+	path = f.Abs(path)
 	return f.fs.MkdirAll(path, perm)
 }
 
@@ -84,19 +91,19 @@ func (f *Fsx) MkdirAll(path string, perm os.FileMode) error {
 // is passed, it is created with mode perm (before umask). If successful,
 // methods on the returned File can be used for I/O.
 func (f *Fsx) Open(name string) (afero.File, error) {
-	name = f.absolute(name)
+	name = f.Abs(name)
 	return f.fs.Open(name)
 }
 
 // OpenFile opens a file using the given flags and the given mode.
 func (f *Fsx) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
-	name = f.absolute(name)
+	name = f.Abs(name)
 	return f.fs.OpenFile(name, flag, perm)
 }
 
 // Remove removes the named file or (empty) directory.
 func (f *Fsx) Remove(name string) error {
-	name = f.absolute(name)
+	name = f.Abs(name)
 	return f.fs.Remove(name)
 }
 
@@ -105,7 +112,7 @@ func (f *Fsx) Remove(name string) error {
 // it encounters. If the path does not exist, RemoveAll
 // returns nil (no error).
 func (f *Fsx) RemoveAll(path string) error {
-	path = f.absolute(path)
+	path = f.Abs(path)
 	return f.fs.RemoveAll(path)
 }
 
@@ -113,14 +120,14 @@ func (f *Fsx) RemoveAll(path string) error {
 // If newpath already exists and is not a directory, Rename replaces it.
 // OS-specific restrictions may apply when oldpath and newpath are in different directories.
 func (f *Fsx) Rename(oldname, newname string) error {
-	oldname = f.absolute(oldname)
-	newname = f.absolute(newname)
+	oldname = f.Abs(oldname)
+	newname = f.Abs(newname)
 	return f.fs.Rename(oldname, newname)
 }
 
 // Stat returns a FileInfo describing the named file.
 func (f *Fsx) Stat(name string) (os.FileInfo, error) {
-	name = f.absolute(name)
+	name = f.Abs(name)
 	return f.fs.Stat(name)
 }
 
@@ -136,22 +143,13 @@ func (f *Fsx) Name() string {
 // A different subset of the mode bits are used, depending on the
 // operating system.
 func (f *Fsx) Chmod(name string, mode os.FileMode) error {
-	name = f.absolute(name)
+	name = f.Abs(name)
 	return f.fs.Chmod(name, mode)
 }
 
 // Chtimes changes the access and modification times of the named
 // file, similar to the Unix utime() or utimes() functions.
 func (f *Fsx) Chtimes(name string, atime time.Time, mtime time.Time) error {
-	name = f.absolute(name)
+	name = f.Abs(name)
 	return f.fs.Chtimes(name, atime, mtime)
 }
-
-func (f *Fsx) absolute(path string) string {
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(f.dir, path)
-	}
-
-	return path
-}
-
