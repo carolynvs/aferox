@@ -38,6 +38,11 @@ func (f *Fsx) Chdir(dir string) {
 	f.dir = f.Abs(dir)
 }
 
+// Chown changes the uid and gid of the named file.
+func (f *Fsx) Chown(name string, uid, gid int) error {
+	return f.fs.Chown(name, uid, gid)
+}
+
 // Abs returns an absolute representation of path. If the path is not absolute
 // it will be joined with the current working directory to turn it into an
 // absolute path. The absolute path name for a given file is not guaranteed to
