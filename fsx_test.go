@@ -1,8 +1,11 @@
 package aferox
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
+	"syscall"
 	"testing"
 	"time"
 
@@ -36,6 +39,41 @@ func TestFsx_Chmod(t *testing.T) {
 	fi, err := f.Stat(filename)
 	require.NoError(t, err, "Stat failed")
 	assert.Equal(t, fi.Mode()&wantMode, wantMode)
+}
+
+func TestFsx_Chown(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("This test fails on other OS's without running as root")
+	}
+
+	tmp, err := ioutil.TempDir("", "aferox")
+	require.NoError(t, err, "create temp directory failed")
+	defer os.RemoveAll(tmp)
+
+	// Testing against the OS because that's the only way to get at the uid/gid
+	f := NewFsx("", afero.NewOsFs())
+
+	filename := filepath.Join(tmp, "myfile.txt")
+	_, err = f.Create(filename)
+	require.NoError(t, err, "Create failed")
+
+	var wantUid = 0
+	var wantGid = 0
+	err = f.Chown(filename, wantUid, wantGid)
+
+	require.NoError(t, err, "Chown failed")
+
+	fi, err := f.Stat(filename)
+	require.NoError(t, err, "Stat failed")
+	stat, ok := fi.Sys().(syscall.Stat_t)
+	if !ok {
+		t.Skip("the current OS doesn't support extended stat info with uid/gid")
+	}
+
+	gotUid := int(stat.Uid)
+	gotGid := int(stat.Gid)
+	assert.Equal(t, wantUid, gotUid, "incorrect uid")
+	assert.Equal(t, wantGid, gotGid, "incorrect gid")
 }
 
 func TestFsx_Chtimes(t *testing.T) {
